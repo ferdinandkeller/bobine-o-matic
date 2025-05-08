@@ -11,6 +11,9 @@
     "**/flake.lock": true,
     "**/src-tauri/target": true,
     "**/src-tauri/gen": true,
+    "**/Cargo.lock": true
   },
+  "editor.tabSize": 4,
+  "files.eol": "\n",
   "svelte.enable-ts-plugin": true
 }
