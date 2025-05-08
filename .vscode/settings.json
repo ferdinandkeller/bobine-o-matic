@@ -1,0 +1,16 @@
+{
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/.svelte-kit": true,
+    "**/node_modules": true,
+    "**/bun.lock": true,
+    "**/flake.lock": true,
+    "**/src-tauri/target": true,
+    "**/src-tauri/gen": true,
+  },
+  "svelte.enable-ts-plugin": true
+}
