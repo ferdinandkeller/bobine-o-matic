@@ -15,15 +15,17 @@
           zsh
           just
           bun
-          
-          rustc
-          cargo
-          rustfmt
-          rust-analyzer
-          clippy
+          rustup
+          python313
+          uv
         ];
 
         shellHook = ''
+          # Ensure rustup is initialized
+          if ! command -v rustc &> /dev/null; then
+            rustup default stable
+          fi
+
           exec zsh
         '';
       };
