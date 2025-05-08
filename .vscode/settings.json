@@ -11,7 +11,11 @@
     "**/flake.lock": true,
     "**/src-tauri/target": true,
     "**/src-tauri/gen": true,
-    "**/Cargo.lock": true
+    "**/Cargo.lock": true,
+    "build": true,
+    "src-python/build": true,
+    "src-python/uv.lock": true,
+    "src-python/.venv": true
   },
   "editor.tabSize": 4,
   "files.eol": "\n",
