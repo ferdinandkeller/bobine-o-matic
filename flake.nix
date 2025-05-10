@@ -20,14 +20,14 @@
           uv
         ];
 
-        shellHook = ''
-          # Ensure rustup is initialized
-          if ! command -v rustc &> /dev/null; then
-            rustup default stable
-          fi
+        # shellHook = ''
+        #   exec zsh
+        # '';
 
-          exec zsh
-        '';
+        # # Ensure rustup is initialized
+        # if ! command -v rustc &> /dev/null; then
+        #   rustup default stable
+        # fi
       };
     };
 }
