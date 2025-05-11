@@ -4,40 +4,49 @@
 
   import {
     Button,
-    Table,
-    TableBody,
-    TableBodyCell,
-    TableBodyRow,
-    TableHead,
-    TableHeadCell,
+    Spinner,
+    // Table,
+    // TableBody,
+    // TableBodyCell,
+    // TableBodyRow,
+    // TableHead,
+    // TableHeadCell,
   } from "flowbite-svelte";
 
   let file_path: string | null = $state(null);
-  let analyzed_data: any | null = $state(null);
+  let analyzing: boolean = $state(false);
+  // let analyzed_data: any | null = $state(null);
 
-  async function analyze_results(path: string) {
-    const command = Command.sidecar("src-python/dist/main/main", [
-      "--file-path",
-      path,
-      "--security-coeff",
-      "3.08",
-      "--delivery-duration",
-      "1",
-      "--download",
-      "false",
-    ]);
-    const output = await command.execute();
-    analyzed_data = JSON.parse(output.stdout.trim());
-  }
+  // async function analyze_results(path: string) {
+  //   console.log("Analyzing results..." + path);
+  //   const command = Command.sidecar("src-python/dist/main", [
+  //     "--file-path",
+  //     path,
+  //     "--security-coeff",
+  //     "3.08",
+  //     "--window-size",
+  //     "7",
+  //     "--delivery-duration",
+  //     "30",
+  //     "--download",
+  //     "false",
+  //   ]);
+  //   const output = await command.execute();
+  //   analyzed_data = JSON.parse(output.stdout.trim());
+  // }
 
   async function download_results(path: string) {
-    const command = Command.sidecar("src-python/dist/main/main", [
+    const command = Command.sidecar("src-python/dist/main", [
       "--file-path",
       path,
       "--security-coeff",
       "3.08",
+      "--window-size",
+      "7",
       "--delivery-duration",
-      "1",
+      "30",
+      "--order-frequency",
+      "7",
       "--download",
       "true",
     ]);
@@ -58,14 +67,17 @@
   async function analyze() {
     await open_file();
     if (file_path === null) return;
-    await analyze_results(file_path);
+    analyzing = true;
+    // await analyze_results(file_path);
+    await download_results(file_path);
+    analyzing = false;
   }
 
-  async function download() {
-    if (analyzed_data === null) await analyze();
-    if (analyzed_data === null || file_path === null) return;
-    await download_results(file_path);
-  }
+  // async function download() {
+  //   if (analyzed_data === null) await analyze();
+  //   if (analyzed_data === null || file_path === null) return;
+  //   await download_results(file_path);
+  // }
 </script>
 
 <main class="h-screen w-full flex flex-col items-center justify-center p-8">
@@ -73,46 +85,36 @@
     StockSync
   </h1>
 
-  <div class="mb-10">
-    <Button color="light" class="cursor-pointer" onclick={analyze}
-      >Analyze Excel File</Button
-    >
-    <Button color="light" class="cursor-pointer" onclick={download}
-      >Download Results</Button
-    >
-  </div>
+  {#if !analyzing}
+    <div class="mb-10">
+      <Button color="light" class="cursor-pointer" onclick={analyze}
+        >Analyze Excel File</Button
+      >
+      <!-- <Button color="light" class="cursor-pointer" onclick={download}
+        >Download Results</Button
+        > -->
+    </div>
+  {:else}
+    <p class="mb-3">Analyzing your file...</p>
+    <Spinner />
+  {/if}
 
-  {#if analyzed_data !== null}
-    <!-- <h2>Analyzed Data</h2> -->
-    <!-- <table>
-      <thead>
-        <tr>
-          <th>reference</th>
-          <th>threshold</th>
-        </tr>
-      </thead>
-      <tbody>
-        {#each Object.entries(analyzed_data) as [reference, threshold]}
-          <tr>
-            <td>{reference}</td>
-            <td>{threshold}</td>
-          </tr>
-        {/each}
-      </tbody>
-    </table> -->
+  <!-- {#if analyzed_data !== null}
     <Table striped={true} hoverable={true} class="w-1/2">
       <TableHead>
         <TableHeadCell>Reference</TableHeadCell>
         <TableHeadCell>Threshold</TableHeadCell>
+        <TableHeadCell>Écart-Type</TableHeadCell>
       </TableHead>
       <TableBody>
-        {#each Object.entries(analyzed_data) as [reference, threshold]}
+        {#each analyzed_data as [reference, threshold, stddev]}
           <TableBodyRow>
             <TableBodyCell>{reference}</TableBodyCell>
             <TableBodyCell>{threshold}</TableBodyCell>
+            <TableBodyCell>{stddev}</TableBodyCell>
           </TableBodyRow>
         {/each}
       </TableBody>
     </Table>
-  {/if}
+  {/if} -->
 </main>

@@ -15,18 +15,26 @@
       "identifier": "shell:allow-execute",
       "allow": [
         {
-          "name": "src-python/dist/main/main",
+          "name": "src-python/dist/main",
           "sidecar": true,
           "args": [
             "--file-path",
             {
-              "validator": "\\S+"
+              "validator": "[\\S ]+"
             },
             "--security-coeff",
             {
               "validator": "\\S+"
             },
+            "--window-size",
+            {
+              "validator": "\\S+"
+            },
             "--delivery-duration",
+            {
+              "validator": "\\S+"
+            },
+            "--order-frequency",
             {
               "validator": "\\S+"
             },

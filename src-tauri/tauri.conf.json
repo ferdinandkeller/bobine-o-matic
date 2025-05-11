@@ -35,10 +35,7 @@
       "icons/icon.ico"
     ],
     "externalBin": [
-      "src-python/dist/main/main"
-    ],
-    "resources": {
-      "src-python/dist/main/_internal/": "_internal/"
-    }
+      "src-python/dist/main"
+    ]
   }
 }

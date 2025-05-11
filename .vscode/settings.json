@@ -14,10 +14,10 @@
     "Cargo.lock": true,
     "build": true,
     "src-tauri/src-python/build": true,
+    // "src-tauri/src-python/dist": true,
     "src-tauri/src-python/uv.lock": true,
     "src-tauri/src-python/.venv": true,
-    ".direnv": true,
-    "src-tauri/src-python/main.spec": true,
+    ".direnv": true
   },
   "editor.tabSize": 4,
   "files.eol": "\n",
