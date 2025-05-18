@@ -19,4 +19,4 @@ set shell := ["zsh", "-c"]
 @build: build-back build-fast
 
 @build-fast:
-    bun tauri build --target aarch64-apple-darwin
+    bun tauri build --target aarch64-apple-darwin --bundles app
