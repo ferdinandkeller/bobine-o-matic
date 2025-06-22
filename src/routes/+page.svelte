@@ -3,6 +3,12 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 
+  import { invoke } from "@tauri-apps/api/core";
+
+  invoke("greet", { name: "Ferdinand" }).then((response) => {
+    console.log("Response from Rust:", response);
+  });
+
   import { Button, Spinner } from "flowbite-svelte";
 
   let analyzing: boolean = $state(false);
@@ -80,7 +86,7 @@
       product_reference: string;
       product_name: string;
       quantity: number;
-    }[],
+    }[]
   ): any[] | null {
     const start_date = group[0].datetime;
     const end_date = group[group.length - 1].datetime;
@@ -121,7 +127,7 @@
     const values = Object.values(rolling_average);
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
     const stddev = Math.sqrt(
-      values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length,
+      values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length
     );
 
     // excel formulas to compute the values
@@ -148,7 +154,7 @@
     const stock = 0;
     const delta_from_target = threshold_stock - stock;
     const order_quantity = Math.ceil(
-      delta_from_target >= 0 ? delta_from_target + min_stock : 0,
+      delta_from_target >= 0 ? delta_from_target + min_stock : 0
     );
 
     return [
@@ -219,10 +225,10 @@
     if (file_content === null) return;
     const out = analyze_results(file_content);
     if (out === null) return;
-    // save the output to a file using Tauri's file system plugin
-    const output_path = file_path.replace(/\.csv$/, "_output.csv");
-    await writeTextFile(output_path, out);
-    analyzing = false;
+    invoke("excel", {
+      content: out,
+      filename: file_path.replace(/\.csv$/, "_output.xlsx"),
+    }).then(() => (analyzing = false));
   }
 </script>
 
@@ -234,7 +240,7 @@
   {#if !analyzing}
     <div class="mb-10">
       <Button color="light" class="cursor-pointer" onclick={analyze}>
-        Analyse le fichier CSV
+        Analyse le fichier Excel
       </Button>
     </div>
   {:else}
