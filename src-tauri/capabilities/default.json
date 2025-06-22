@@ -11,41 +11,15 @@
     "windows"
   ],
   "permissions": [
+    "dialog:default",
+    "fs:default",
     {
-      "identifier": "shell:allow-execute",
+      "identifier": "fs:allow-write-text-file",
       "allow": [
         {
-          "name": "src-python/dist/main",
-          "sidecar": true,
-          "args": [
-            "--file-path",
-            {
-              "validator": "[\\S ]+"
-            },
-            "--security-coeff",
-            {
-              "validator": "\\S+"
-            },
-            "--window-size",
-            {
-              "validator": "\\S+"
-            },
-            "--delivery-duration",
-            {
-              "validator": "\\S+"
-            },
-            "--order-frequency",
-            {
-              "validator": "\\S+"
-            },
-            "--download",
-            {
-              "validator": "\\S+"
-            }
-          ]
+          "path": "$DOWNLOAD/**"
         }
       ]
-    },
-    "dialog:default"
+    }
   ]
 }
