@@ -1,52 +1,175 @@
+use calamine::{self, Reader};
+use regex::Regex;
 use rust_xlsxwriter::*;
+use serde::{Deserialize, Serialize};
+use serde_json;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![greet, excel])
+        .invoke_handler(tauri::generate_handler![excel, excel2])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct DataRow {
+    date: String,
+    quantity: f64,
+    product_code: String,
+    product_name: String,
+    product_brand: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ProcessedDataRow {
+    reference: String,
+    designation: String,
+    product_brand: String,
+    delivery_duration: f64,
+    security_coeff: f64,
+    order_frequency: f64,
+    average_consumption: f64,
+    std_dev: f64,
+}
+
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+fn excel2(filepath: String) -> String {
+    // open the Excel file
+    let mut workbook: calamine::Xlsx<_> = calamine::open_workbook(filepath).unwrap();
+    let worksheets = workbook.worksheets();
+    let (_name, worksheet) = worksheets.get(0).unwrap();
+
+    // load the data from the first worksheet
+    let content = worksheet
+        .rows()
+        .skip(12)
+        .map(|row| {
+            row.iter()
+                .map(|cell| cell.to_string())
+                .collect::<Vec<String>>()
+        })
+        .collect::<Vec<Vec<String>>>();
+
+    // find which columns we need
+    let columns: Vec<String> = content[0].iter().map(|c| c.trim().to_lowercase()).collect();
+    let date_index = columns.iter().position(|c| c == "date").unwrap();
+    let quantity_index = columns.iter().position(|c| c == "quantity").unwrap();
+    let product_code_index = columns.iter().position(|c| c == "product code").unwrap();
+    let produce_name_index = columns.iter().position(|c| c == "product name").unwrap();
+    let product_brand_index = columns.iter().position(|c| c == "brand group").unwrap();
+
+    let date_regex = Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap();
+
+    // parse into DataRow structs
+    let data: Vec<DataRow> = content
+        .iter()
+        .skip(1)
+        .filter(|row| {
+            // make sure the date matches the regex
+            if !date_regex.is_match(&row[date_index]) {
+                return false;
+            }
+            return true;
+        })
+        .map(|row| DataRow {
+            // make sure the date is in the correct format
+            date: row[date_index].clone(),
+            quantity: row[quantity_index].parse().unwrap_or(0.0),
+            product_code: row[product_code_index].clone(),
+            product_name: row[produce_name_index].clone(),
+            product_brand: row[product_brand_index].clone(),
+        })
+        .filter(|row| row.quantity > 0.0)
+        .collect();
+
+    serde_json::to_string(&data).unwrap()
 }
 
 #[tauri::command]
 fn excel(content: String, filename: String) {
-    let rows: Vec<Vec<&str>> = content
-        .lines()
-        .map(|line| line.split(',').collect())
+    let data: Vec<ProcessedDataRow> = serde_json::from_str(&content).unwrap();
+    let data2: Vec<Vec<String>> = data
+        .iter()
+        .map(|row| {
+            vec![
+                row.reference.clone(),
+                row.designation.clone(),
+                row.product_brand.clone(),
+                row.delivery_duration.to_string(),
+                row.security_coeff.to_string(),
+                row.order_frequency.to_string(),
+                row.average_consumption.to_string(),
+                row.std_dev.to_string(),
+            ]
+        })
         .collect();
+
+    // add headers
+    let headers = vec![
+        "Référence".to_string(),
+        "Désignation".to_string(),
+        "Marque".to_string(),
+        "Durée de Livraison (jours)".to_string(),
+        "Coefficient de Sécurité (99.9%)".to_string(),
+        "Fréquence de Commande (jours)".to_string(),
+        "Consommation Moyenne / jour".to_string(),
+        "Ecart-type".to_string(),
+        "Stock Minimum".to_string(),
+        "Stock de Sécurité".to_string(),
+        "Seuil de Commande".to_string(),
+        "Stock Actuel".to_string(),
+        "Delta de Stock".to_string(),
+        "Quantité à Commander".to_string(),
+    ];
+    let mut rows = vec![headers];
+    rows.extend(data2);
+
     let row_count = rows.len();
 
     let mut workbook = Workbook::new();
     let worksheet = workbook.add_worksheet();
 
-    // write data
     for (i, row) in rows.iter().enumerate() {
         for (j, cell) in row.iter().enumerate() {
-            worksheet.write(i as u32, j as u16, *cell).unwrap();
+            worksheet.write(i as u32, j as u16, cell).unwrap();
         }
     }
+
+    // excel formulas to compute the values
+    // for row in range(1, len(out_df) + 1):
+    //     # min_stock = average * (delivery_duration + order_frequency)
+    //     worksheet.write(row, 7, f"=F{row + 1}*(C{row + 1}+E{row + 1})")
+    //     # security_stock = std_dev * security_coeff * sqrt(delivery_duration + order_frequency)
+    //     worksheet.write(
+    //         row, 8, f"=D{row + 1}*G{row + 1}*SQRT(C{row + 1}+E{row + 1})"
+    //     )
+    //     # threshold_stock = ceil(min_stock + security_stock)
+    //     worksheet.write(row, 9, f"=ROUNDUP(H{row + 1}+I{row + 1},0)")
+    //     # threshold_stock - stock
+    //     worksheet.write(row, 11, f"=J{row + 1}-K{row + 1}")
+    //     # order_quantity = ceil(delta_from_target + min_stock) if delta_from_target >= 0 else 0
+    //     worksheet.write(
+    //         row, 12, f"=IF(L{row + 1}>=0,ROUNDUP(H{row + 1}+L{row + 1},0),0)"
+    //     )
 
     // write formulas
     for i in 0..(row_count - 1) {
         let row = i as u32 + 2;
 
-        let f7 = Formula::new(format!("=F{row}*(C{row} + E{row})"));
-        worksheet.write_formula(row - 1, 7, f7).unwrap();
-        let f8 = Formula::new(format!("=D{row}*G{row}*SQRT(C{row}+E{row})"));
+        let f8 = Formula::new(format!("=G{row}*(D{row} + F{row})"));
         worksheet.write_formula(row - 1, 8, f8).unwrap();
-        let f9 = Formula::new(format!("=ROUNDUP(H{row}+I{row},0)"));
+        let f9 = Formula::new(format!("=E{row}*H{row}*SQRT(D{row}+F{row})"));
         worksheet.write_formula(row - 1, 9, f9).unwrap();
-        let f11 = Formula::new(format!("=J{row}-K{row}"));
-        worksheet.write_formula(row - 1, 11, f11).unwrap();
-        let f12 = Formula::new(format!("=IF(L{row}>=0,ROUNDUP(H{row}+L{row},0),0)"));
+        let f10 = Formula::new(format!("=ROUNDUP(I{row}+J{row},0)"));
+        worksheet.write_formula(row - 1, 10, f10).unwrap();
+        let f12 = Formula::new(format!("=K{row}-L{row}"));
         worksheet.write_formula(row - 1, 12, f12).unwrap();
+        let f13 = Formula::new(format!("=IF(M{row}>=0,ROUNDUP(I{row}+M{row},0),0)"));
+        worksheet.write_formula(row - 1, 13, f13).unwrap();
     }
 
     workbook.save(filename).unwrap();

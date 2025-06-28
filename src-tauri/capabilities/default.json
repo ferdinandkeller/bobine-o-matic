@@ -14,10 +14,10 @@
     "dialog:default",
     "fs:default",
     {
-      "identifier": "fs:allow-write-text-file",
+      "identifier": "opener:allow-open-path",
       "allow": [
         {
-          "path": "$DOWNLOAD/**"
+          "path": "$HOME/**/*"
         }
       ]
     }

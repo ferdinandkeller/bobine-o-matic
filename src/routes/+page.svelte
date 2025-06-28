@@ -1,13 +1,7 @@
 <script lang="ts">
-  import { read } from "$app/server";
   import { open } from "@tauri-apps/plugin-dialog";
-  import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
-
+  import { openPath } from "@tauri-apps/plugin-opener";
   import { invoke } from "@tauri-apps/api/core";
-
-  invoke("greet", { name: "Ferdinand" }).then((response) => {
-    console.log("Response from Rust:", response);
-  });
 
   import { Button, Spinner } from "flowbite-svelte";
 
@@ -18,14 +12,14 @@
   const DELIVERY_DURATION = 30;
   const ORDER_FREQUENCY = 7;
 
-  async function open_file() {
+  async function select_excel_file() {
     return await open({
       multiple: false,
       directory: false,
       filters: [
         {
-          name: "Sélectionne un fichier CSV",
-          extensions: ["csv"],
+          name: "Sélectionne un fichier Excel",
+          extensions: ["xlsx"],
         },
       ],
     });
@@ -35,61 +29,20 @@
     return new Date(date_string + "T00:00:00.000Z");
   }
 
-  function parse_csv(file_content: string) {
-    // normalize line endings
-    file_content = file_content.replace(/\r\n/g, "\n");
-
-    // remove first 10 lines of crap
-    const lines = file_content.split("\n").slice(10);
-
-    // find columns indices using header
-    const headers = lines[0].split(",");
-    const datetime_label_index = headers.indexOf("Date");
-    const product_reference_index = headers.indexOf("Product Code");
-    const product_name_index = headers.indexOf("Product Name");
-    const quantity_label_index = headers.indexOf("Quantity");
-
-    // parse rows to objects
-    return lines
-      .slice(1, -1)
-      .map((line) => {
-        const columns = line.split(",");
-        // skip if columns[datetime_label_index] is "Unknown"
-        if (columns[datetime_label_index] === "Unknown") {
-          return null;
-        }
-        return {
-          datetime: parse_date(columns[datetime_label_index]),
-          product_reference: columns[product_reference_index],
-          product_name: columns[product_name_index].replace(/^"+|"+$/g, ""),
-          quantity: parseFloat(columns[quantity_label_index]),
-        };
-      })
-      .filter((row) => row !== null)
-      .sort((a, b) => a.datetime.getTime() - b.datetime.getTime());
-  }
-
-  function group_by_reference(data: { product_reference: string }[]) {
+  function group_by_reference(data: { product_code: string }[]) {
     let grouped: { [key: string]: any } = {};
     data.forEach((item) => {
-      if (!grouped[item.product_reference]) {
-        grouped[item.product_reference] = [];
+      if (!grouped[item.product_code]) {
+        grouped[item.product_code] = [];
       }
-      grouped[item.product_reference].push(item);
+      grouped[item.product_code].push(item);
     });
     return grouped;
   }
 
-  function analyze_group(
-    group: {
-      datetime: Date;
-      product_reference: string;
-      product_name: string;
-      quantity: number;
-    }[],
-  ): any[] | null {
-    const start_date = group[0].datetime;
-    const end_date = group[group.length - 1].datetime;
+  function analyze_group(group: DataRow[]) {
+    const start_date = group[0].date;
+    const end_date = group[group.length - 1].date;
     const total_duration =
       (end_date.getTime() - start_date.getTime()) / (1000 * 60 * 60 * 24);
     if (total_duration <= WINDOW_SIZE) return null;
@@ -104,7 +57,7 @@
     // for each date add the quantity +7 days after the event
     for (const item of group) {
       for (let i = 0; i < WINDOW_SIZE; i++) {
-        const future_date = new Date(item.datetime);
+        const future_date = new Date(item.date);
         future_date.setUTCDate(future_date.getUTCDate() + i);
         const future_date_str = future_date.toISOString().split("T")[0];
         if (rolling_average[future_date_str] !== undefined) {
@@ -130,105 +83,87 @@
       values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length,
     );
 
-    // excel formulas to compute the values
-    // for row in range(1, len(out_df) + 1):
-    //     # min_stock = average * (delivery_duration + order_frequency)
-    //     worksheet.write(row, 7, f"=F{row + 1}*(C{row + 1}+E{row + 1})")
-    //     # security_stock = std_dev * security_coeff * sqrt(delivery_duration + order_frequency)
-    //     worksheet.write(
-    //         row, 8, f"=D{row + 1}*G{row + 1}*SQRT(C{row + 1}+E{row + 1})"
-    //     )
-    //     # threshold_stock = ceil(min_stock + security_stock)
-    //     worksheet.write(row, 9, f"=ROUNDUP(H{row + 1}+I{row + 1},0)")
-    //     # threshold_stock - stock
-    //     worksheet.write(row, 11, f"=J{row + 1}-K{row + 1}")
-    //     # order_quantity = ceil(delta_from_target + min_stock) if delta_from_target >= 0 else 0
-    //     worksheet.write(
-    //         row, 12, f"=IF(L{row + 1}>=0,ROUNDUP(H{row + 1}+L{row + 1},0),0)"
-    //     )
+    // const min_stock = mean * (DELIVERY_DURATION + ORDER_FREQUENCY);
+    // const security_stock =
+    //   stddev * SECURITY_COEFF * Math.sqrt(DELIVERY_DURATION + ORDER_FREQUENCY);
+    // const threshold_stock = Math.ceil(min_stock + security_stock);
+    // const stock = 0;
+    // const delta_from_target = threshold_stock - stock;
+    // const order_quantity = Math.ceil(
+    //   delta_from_target >= 0 ? delta_from_target + min_stock : 0,
+    // );
 
-    const min_stock = mean * (DELIVERY_DURATION + ORDER_FREQUENCY);
-    const security_stock =
-      stddev * SECURITY_COEFF * Math.sqrt(DELIVERY_DURATION + ORDER_FREQUENCY);
-    const threshold_stock = Math.ceil(min_stock + security_stock);
-    const stock = 0;
-    const delta_from_target = threshold_stock - stock;
-    const order_quantity = Math.ceil(
-      delta_from_target >= 0 ? delta_from_target + min_stock : 0,
-    );
-
-    return [
+    return {
       // product
-      group[0].product_reference,
-      group[0].product_name,
+      reference: group[0].product_code,
+      designation: group[0].product_name,
+      product_brand: group[0].product_brand,
       // parameters
-      DELIVERY_DURATION,
-      SECURITY_COEFF,
-      ORDER_FREQUENCY,
+      delivery_duration: DELIVERY_DURATION,
+      security_coeff: SECURITY_COEFF,
+      order_frequency: ORDER_FREQUENCY,
       // data observations
-      mean,
-      stddev,
-      // computed values
-      min_stock,
-      security_stock,
-      threshold_stock,
-      stock,
-      delta_from_target,
-      order_quantity,
-    ];
+      average_consumption: mean,
+      std_dev: stddev,
+    };
   }
 
-  function analyze_results(file_content: string): string | null {
-    const data = parse_csv(file_content);
-    const start_date = data[0].datetime;
-    const end_date = data[data.length - 1].datetime;
+  type DataRow = {
+    date: Date;
+    quantity: number;
+    product_code: string;
+    product_name: string;
+    product_brand: string;
+  };
+
+  function analyze_results(data: DataRow[]) {
+    const start_date = data[0].date;
+    const end_date = data[data.length - 1].date;
     const total_duration =
       (end_date.getTime() - start_date.getTime()) / (1000 * 60 * 60 * 24);
     if (total_duration <= WINDOW_SIZE) return null;
 
     const grouped_data = group_by_reference(data);
-    const results = [
-      [
-        "Référence",
-        "Désignation",
-        "Durée de Livraison (jours)",
-        "Coefficient de Sécurité (99.9%)",
-        "Fréquence de Commande (jours)",
-        "Consommation Moyenne / jour",
-        "Ecart-type",
-        "Stock Minimum",
-        "Stock de Sécurité",
-        "Seuil de Commande",
-        "Stock Actuel",
-        "Delta de Stock",
-        "Quantité à Commander",
-      ].join(","),
-    ];
+
+    const results: any[] = [];
+
     for (const reference in grouped_data) {
       const group = grouped_data[reference];
       const out = analyze_group(group);
       if (out === null) continue;
-      results.push(out.join(","));
+      results.push(out);
     }
-    const out = results.join("\n");
-    return out;
+
+    return JSON.stringify(results, null, 0);
   }
 
   async function analyze() {
-    const file_path = await open_file();
+    const file_path = await select_excel_file();
+
     if (file_path === null) return;
-    if (!file_path.toLowerCase().endsWith(".csv")) return;
+    if (!file_path.toLowerCase().endsWith(".xlsx")) return;
 
     analyzing = true;
 
-    const file_content = await readTextFile(file_path);
-    if (file_content === null) return;
-    const out = analyze_results(file_content);
+    const data = JSON.parse(await invoke("excel2", { filepath: file_path }))
+      .map((r: DataRow | { date: string }) => {
+        r.date = parse_date(r.date as string);
+        return r;
+      })
+      .sort((a: DataRow, b: DataRow) => a.date.getTime() - b.date.getTime());
+
+    const out = analyze_results(data);
     if (out === null) return;
+
+    let new_path = file_path.replace(/\.xlsx$/, "_output.xlsx");
+
     invoke("excel", {
       content: out,
-      filename: file_path.replace(/\.csv$/, "_output.xlsx"),
-    }).then(() => (analyzing = false));
+      filename: new_path,
+    }).then(async () => {
+      analyzing = false;
+      await openPath(new_path);
+    });
   }
 </script>
 
@@ -240,7 +175,7 @@
   {#if !analyzing}
     <div class="mb-10">
       <Button color="light" class="cursor-pointer" onclick={analyze}>
-        Analyse le fichier Excel
+        Analyser un fichier Excel
       </Button>
     </div>
   {:else}
