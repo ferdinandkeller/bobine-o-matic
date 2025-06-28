@@ -1,4 +1,4 @@
-set shell := ["zsh", "-c"]
+set shell := ["zsh", "-cu"]
 
 @dev:
     bun run tauri dev
