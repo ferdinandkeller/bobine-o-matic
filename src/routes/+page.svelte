@@ -86,7 +86,7 @@
       product_reference: string;
       product_name: string;
       quantity: number;
-    }[]
+    }[],
   ): any[] | null {
     const start_date = group[0].datetime;
     const end_date = group[group.length - 1].datetime;
@@ -127,7 +127,7 @@
     const values = Object.values(rolling_average);
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
     const stddev = Math.sqrt(
-      values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length
+      values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length,
     );
 
     // excel formulas to compute the values
@@ -154,7 +154,7 @@
     const stock = 0;
     const delta_from_target = threshold_stock - stock;
     const order_quantity = Math.ceil(
-      delta_from_target >= 0 ? delta_from_target + min_stock : 0
+      delta_from_target >= 0 ? delta_from_target + min_stock : 0,
     );
 
     return [
@@ -234,7 +234,7 @@
 
 <main class="h-screen w-full flex flex-col items-center justify-center p-8">
   <h1 class="b-4 text-3xl font-extrabold text-gray-900 uppercase mb-10">
-    StockSync
+    StockWise
   </h1>
 
   {#if !analyzing}
