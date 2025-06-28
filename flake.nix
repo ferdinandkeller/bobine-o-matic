@@ -16,8 +16,8 @@
           just
           bun
           rustup
-          python313
-          uv
+          # libgccjit
+          # libiconv
         ];
       };
     };
