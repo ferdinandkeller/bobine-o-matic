@@ -29,11 +29,11 @@ struct ProcessedDataRow {
     reference: String,
     designation: String,
     product_brand: String,
-    delivery_duration: f64,
-    security_coeff: f64,
-    order_frequency: f64,
-    average_consumption: f64,
-    std_dev: f64,
+    delivery_duration: String,
+    security_coeff: String,
+    order_frequency: String,
+    average_consumption: String,
+    std_dev: String,
 }
 
 #[tauri::command]
@@ -99,11 +99,11 @@ fn excel(content: String, filename: String) {
                 row.reference.clone(),
                 row.designation.clone(),
                 row.product_brand.clone(),
-                row.delivery_duration.to_string(),
-                row.security_coeff.to_string(),
-                row.order_frequency.to_string(),
-                row.average_consumption.to_string(),
-                row.std_dev.to_string(),
+                row.delivery_duration.clone(),
+                row.security_coeff.clone(),
+                row.order_frequency.clone(),
+                row.average_consumption.clone(),
+                row.std_dev.clone(),
             ]
         })
         .collect();

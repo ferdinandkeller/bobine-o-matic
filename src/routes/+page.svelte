@@ -99,12 +99,12 @@
       designation: group[0].product_name,
       product_brand: group[0].product_brand,
       // parameters
-      delivery_duration: DELIVERY_DURATION,
-      security_coeff: SECURITY_COEFF,
-      order_frequency: ORDER_FREQUENCY,
+      delivery_duration: DELIVERY_DURATION.toString().replace(".", ","),
+      security_coeff: SECURITY_COEFF.toString().replace(".", ","),
+      order_frequency: ORDER_FREQUENCY.toString().replace(".", ","),
       // data observations
-      average_consumption: mean,
-      std_dev: stddev,
+      average_consumption: mean.toString().replace(".", ","),
+      std_dev: stddev.toString().replace(".", ","),
     };
   }
 
