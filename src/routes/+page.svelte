@@ -12,6 +12,9 @@
   const DELIVERY_DURATION = 30;
   const ORDER_FREQUENCY = 7;
 
+  let file_path_1: string | null = null;
+  let file_path_2: string | null = null;
+
   async function select_excel_file() {
     return await open({
       multiple: false,
@@ -40,7 +43,10 @@
     return grouped;
   }
 
-  function analyze_group(group: DataRow[]) {
+  function analyze_group(
+    group: DataRow1[],
+    stock_quantity: { [id: string]: number },
+  ) {
     const start_date = group[0].date;
     const end_date = group[group.length - 1].date;
     const total_duration =
@@ -105,10 +111,14 @@
       // data observations
       average_consumption: mean.toString().replace(".", ","),
       std_dev: stddev.toString().replace(".", ","),
+      // current stock
+      stock_quantity:
+        Math.round(stock_quantity[group[0].product_code] || 0).toString() +
+        ",00",
     };
   }
 
-  type DataRow = {
+  type DataRow1 = {
     date: Date;
     quantity: number;
     product_code: string;
@@ -116,20 +126,30 @@
     product_brand: string;
   };
 
-  function analyze_results(data: DataRow[]) {
-    const start_date = data[0].date;
-    const end_date = data[data.length - 1].date;
+  type DataRow2 = {
+    product_code: string;
+    valuated_quantity: number;
+  };
+
+  function analyze_results(data_1: DataRow1[], data_2: DataRow2[]) {
+    let stock_quantity: { [id: string]: number } = {};
+    for (const row of data_2) {
+      stock_quantity[row.product_code] = row.valuated_quantity;
+    }
+
+    const start_date = data_1[0].date;
+    const end_date = data_1[data_1.length - 1].date;
     const total_duration =
       (end_date.getTime() - start_date.getTime()) / (1000 * 60 * 60 * 24);
     if (total_duration <= WINDOW_SIZE) return null;
 
-    const grouped_data = group_by_reference(data);
+    const grouped_data = group_by_reference(data_1);
 
     const results: any[] = [];
 
     for (const reference in grouped_data) {
       const group = grouped_data[reference];
-      const out = analyze_group(group);
+      const out = analyze_group(group, stock_quantity);
       if (out === null) continue;
       results.push(out);
     }
@@ -138,24 +158,34 @@
   }
 
   async function analyze() {
-    const file_path = await select_excel_file();
-
-    if (file_path === null) return;
-    if (!file_path.toLowerCase().endsWith(".xlsx")) return;
+    if (file_path_1 === null || file_path_2 === null) {
+      alert("Veuillez charger les deux fichiers avant de lancer l'analyse.");
+      return;
+    }
 
     analyzing = true;
 
-    const data = JSON.parse(await invoke("excel2", { filepath: file_path }))
-      .map((r: DataRow | { date: string }) => {
+    const data_1 = JSON.parse(
+      await invoke("excel_1", {
+        filePath1: file_path_1,
+      }),
+    )
+      .map((r: DataRow1 | { date: string }) => {
         r.date = parse_date(r.date as string);
         return r;
       })
-      .sort((a: DataRow, b: DataRow) => a.date.getTime() - b.date.getTime());
+      .sort((a: DataRow1, b: DataRow1) => a.date.getTime() - b.date.getTime());
 
-    const out = analyze_results(data);
+    const data_2 = JSON.parse(
+      await invoke("excel_2", {
+        filePath2: file_path_2,
+      }),
+    );
+
+    const out = analyze_results(data_1, data_2);
     if (out === null) return;
 
-    let new_path = file_path.replace(/\.xlsx$/, "_output.xlsx");
+    let new_path = file_path_1.replace(/\.xlsx$/, "_output.xlsx");
 
     invoke("excel", {
       content: out,
@@ -165,15 +195,35 @@
       await openPath(new_path);
     });
   }
+
+  async function load_file_1() {
+    file_path_1 = await select_excel_file();
+    if (file_path_1 === null) return;
+    if (file_path_1.toLowerCase().endsWith(".xlsx")) return;
+    file_path_1 = null;
+  }
+
+  async function load_file_2() {
+    file_path_2 = await select_excel_file();
+    if (file_path_2 === null) return;
+    if (file_path_2.toLowerCase().endsWith(".xlsx")) return;
+    file_path_2 = null;
+  }
 </script>
 
 <main class="h-screen w-full flex flex-col items-center justify-center p-8">
   <h1 class="b-4 text-3xl font-extrabold text-gray-900 mb-10">BobinOMatic</h1>
 
   {#if !analyzing}
-    <div class="mb-10">
-      <Button color="light" class="cursor-pointer" onclick={analyze}>
-        Analyser un fichier Excel
+    <div class="mb-10 flex flex-col">
+      <Button color="light" class="cursor-pointer mb-3" onclick={load_file_1}>
+        Insérez le fichier Analyse des Stocks
+      </Button>
+      <Button color="light" class="cursor-pointer mb-10" onclick={load_file_2}>
+        Insérez le fichier Analyse des Ventes
+      </Button>
+      <Button color="light" class="cursor-pointer bg-blue-50" onclick={analyze}>
+        Cliquez pour connaître le nombre de bobines à commander par référence
       </Button>
     </div>
   {:else}

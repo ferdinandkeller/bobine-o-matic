@@ -10,7 +10,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![excel, excel2])
+        .invoke_handler(tauri::generate_handler![excel, excel_1, excel_2])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -25,6 +25,12 @@ struct DataRow {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+struct DataRow2 {
+    product_code: String,
+    valuated_quantity: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct ProcessedDataRow {
     reference: String,
     designation: String,
@@ -34,12 +40,12 @@ struct ProcessedDataRow {
     order_frequency: String,
     average_consumption: String,
     std_dev: String,
+    stock_quantity: String,
 }
 
-#[tauri::command]
-fn excel2(filepath: String) -> String {
+fn open_file_1(file_path: String) -> Vec<DataRow> {
     // open the Excel file
-    let mut workbook: calamine::Xlsx<_> = calamine::open_workbook(filepath).unwrap();
+    let mut workbook: calamine::Xlsx<_> = calamine::open_workbook(file_path).unwrap();
     let worksheets = workbook.worksheets();
     let (_name, worksheet) = worksheets.get(0).unwrap();
 
@@ -86,7 +92,59 @@ fn excel2(filepath: String) -> String {
         .filter(|row| row.quantity > 0.0)
         .collect();
 
-    serde_json::to_string(&data).unwrap()
+    data
+}
+
+fn open_file_2(file_path: String) -> Vec<DataRow2> {
+    // open the Excel file
+    let mut workbook: calamine::Xlsx<_> = calamine::open_workbook(file_path).unwrap();
+    let worksheets = workbook.worksheets();
+    let (_name, worksheet) = worksheets.get(2).unwrap();
+
+    // load the data from the first worksheet
+    let content = worksheet
+        .rows()
+        .skip(3)
+        .map(|row| {
+            row.iter()
+                .map(|cell| cell.to_string())
+                .collect::<Vec<String>>()
+        })
+        .collect::<Vec<Vec<String>>>();
+
+    // find which columns we need
+    let columns: Vec<String> = content[0].iter().map(|c| c.trim().to_lowercase()).collect();
+    let product_code_index = columns.iter().position(|c| c == "product code").unwrap();
+    let quantity_index = columns
+        .iter()
+        .position(|c| c == "valuated quantity")
+        .unwrap();
+
+    // parse into DataRow structs
+    let data: Vec<DataRow2> = content
+        .iter()
+        .skip(1)
+        .map(|row| DataRow2 {
+            // make sure the date is in the correct format,
+            product_code: row[product_code_index].clone(),
+            valuated_quantity: row[quantity_index].replace(',', ".").parse().unwrap_or(0.0),
+        })
+        .filter(|row| row.valuated_quantity > 0.0)
+        .collect();
+
+    data
+}
+
+#[tauri::command]
+fn excel_1(file_path_1: String) -> String {
+    let data_1 = open_file_1(file_path_1);
+    serde_json::to_string(&data_1).unwrap()
+}
+
+#[tauri::command]
+fn excel_2(file_path_2: String) -> String {
+    let data_2 = open_file_2(file_path_2);
+    serde_json::to_string(&data_2).unwrap()
 }
 
 #[tauri::command]
@@ -104,6 +162,10 @@ fn excel(content: String, filename: String) {
                 row.order_frequency.clone(),
                 row.average_consumption.clone(),
                 row.std_dev.clone(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                row.stock_quantity.clone(),
             ]
         })
         .collect();
@@ -124,6 +186,7 @@ fn excel(content: String, filename: String) {
         "Stock Actuel".to_string(),
         "Delta de Stock".to_string(),
         "Quantité à Commander".to_string(),
+        "Croissance".to_string(),
     ];
     let mut rows = vec![headers];
     rows.extend(data2);
@@ -160,7 +223,7 @@ fn excel(content: String, filename: String) {
     for i in 0..(row_count - 1) {
         let row = i as u32 + 2;
 
-        let f8 = Formula::new(format!("=G{row}*(D{row} + F{row})"));
+        let f8 = Formula::new(format!("=G{row}*(D{row} + F{row})*(1+O{row})"));
         worksheet.write_formula(row - 1, 8, f8).unwrap();
         let f9 = Formula::new(format!("=E{row}*H{row}*SQRT(D{row}+F{row})"));
         worksheet.write_formula(row - 1, 9, f9).unwrap();
@@ -170,6 +233,7 @@ fn excel(content: String, filename: String) {
         worksheet.write_formula(row - 1, 12, f12).unwrap();
         let f13 = Formula::new(format!("=IF(M{row}>=0,ROUNDUP(I{row}+M{row},0),0)"));
         worksheet.write_formula(row - 1, 13, f13).unwrap();
+        worksheet.write_formula(row - 1, 14, "20%").unwrap();
     }
 
     workbook.save(filename).unwrap();
