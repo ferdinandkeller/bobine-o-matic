@@ -16,9 +16,12 @@
           just
           bun
           rustup
-          # libgccjit
-          # libiconv
         ];
+
+        # open zsh shell
+        shellHook = ''
+          exec zsh
+        '';
       };
     };
 }

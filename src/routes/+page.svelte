@@ -168,9 +168,7 @@
 </script>
 
 <main class="h-screen w-full flex flex-col items-center justify-center p-8">
-  <h1 class="b-4 text-3xl font-extrabold text-gray-900 uppercase mb-10">
-    StockWise
-  </h1>
+  <h1 class="b-4 text-3xl font-extrabold text-gray-900 mb-10">BobinOMatic</h1>
 
   {#if !analyzing}
     <div class="mb-10">
