@@ -89,32 +89,20 @@
       values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length,
     );
 
-    // const min_stock = mean * (DELIVERY_DURATION + ORDER_FREQUENCY);
-    // const security_stock =
-    //   stddev * SECURITY_COEFF * Math.sqrt(DELIVERY_DURATION + ORDER_FREQUENCY);
-    // const threshold_stock = Math.ceil(min_stock + security_stock);
-    // const stock = 0;
-    // const delta_from_target = threshold_stock - stock;
-    // const order_quantity = Math.ceil(
-    //   delta_from_target >= 0 ? delta_from_target + min_stock : 0,
-    // );
-
     return {
       // product
       reference: group[0].product_code,
       designation: group[0].product_name,
       product_brand: group[0].product_brand,
       // parameters
-      delivery_duration: DELIVERY_DURATION.toString().replace(".", ","),
-      security_coeff: SECURITY_COEFF.toString().replace(".", ","),
-      order_frequency: ORDER_FREQUENCY.toString().replace(".", ","),
+      delivery_duration: DELIVERY_DURATION,
+      security_coeff: SECURITY_COEFF,
+      order_frequency: ORDER_FREQUENCY,
       // data observations
-      average_consumption: mean.toString().replace(".", ","),
-      std_dev: stddev.toString().replace(".", ","),
+      average_consumption: mean,
+      std_dev: stddev,
       // current stock
-      stock_quantity:
-        Math.round(stock_quantity[group[0].product_code] || 0).toString() +
-        ",00",
+      stock_quantity: stock_quantity[group[0].product_code] || 0,
     };
   }
 
