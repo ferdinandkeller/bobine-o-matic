@@ -156,31 +156,52 @@ fn excel(content: String, filename: String) {
     let worksheet = workbook.add_worksheet();
 
     // add headers
-    worksheet.write_string(0, 0, "Référence").unwrap();
-    worksheet.write_string(0, 1, "Désignation").unwrap();
-    worksheet.write_string(0, 2, "Marque").unwrap();
+    let format_bold = Format::new().set_bold();
     worksheet
-        .write_string(0, 3, "Durée de Livraison (jours)")
+        .write_string_with_format(0, 0, "Référence", &format_bold)
         .unwrap();
     worksheet
-        .write_string(0, 4, "Coefficient de Sécurité")
+        .write_string_with_format(0, 1, "Désignation", &format_bold)
         .unwrap();
     worksheet
-        .write_string(0, 5, "Fréquence de Commande (jours)")
+        .write_string_with_format(0, 2, "Marque", &format_bold)
         .unwrap();
     worksheet
-        .write_string(0, 6, "Consommation Moyenne / jour")
+        .write_string_with_format(0, 3, "Durée de Livraison (jours)", &format_bold)
         .unwrap();
-    worksheet.write_string(0, 7, "Ecart-type").unwrap();
-    worksheet.write_string(0, 8, "Stock Minimum").unwrap();
-    worksheet.write_string(0, 9, "Stock de Sécurité").unwrap();
-    worksheet.write_string(0, 10, "Seuil de Commande").unwrap();
-    worksheet.write_string(0, 11, "Stock Actuel").unwrap();
-    worksheet.write_string(0, 12, "Delta de Stock").unwrap();
     worksheet
-        .write_string(0, 13, "Quantité à Commander")
+        .write_string_with_format(0, 4, "Coefficient de Sécurité", &format_bold)
         .unwrap();
-    worksheet.write_string(0, 14, "Croissance").unwrap();
+    worksheet
+        .write_string_with_format(0, 5, "Fréquence de Commande (jours)", &format_bold)
+        .unwrap();
+    worksheet
+        .write_string_with_format(0, 6, "Consommation Moyenne / jour", &format_bold)
+        .unwrap();
+    worksheet
+        .write_string_with_format(0, 7, "Ecart-type", &format_bold)
+        .unwrap();
+    worksheet
+        .write_string_with_format(0, 8, "Stock Minimum", &format_bold)
+        .unwrap();
+    worksheet
+        .write_string_with_format(0, 9, "Stock de Sécurité", &format_bold)
+        .unwrap();
+    worksheet
+        .write_string_with_format(0, 10, "Seuil de Commande", &format_bold)
+        .unwrap();
+    worksheet
+        .write_string_with_format(0, 11, "Stock Actuel", &format_bold)
+        .unwrap();
+    worksheet
+        .write_string_with_format(0, 12, "Delta de Stock", &format_bold)
+        .unwrap();
+    worksheet
+        .write_string_with_format(0, 13, "Quantité à Commander", &format_bold)
+        .unwrap();
+    worksheet
+        .write_string_with_format(0, 14, "Croissance", &format_bold)
+        .unwrap();
 
     // add data rows
     for (i, row) in data.iter().enumerate() {
@@ -225,7 +246,9 @@ fn excel(content: String, filename: String) {
         let f12 = Formula::new(format!("=K{row}-L{row}"));
         worksheet.write_formula(row - 1, 12, f12).unwrap();
         let f13 = Formula::new(format!("=IF(M{row}>=0,ROUNDUP(I{row}+M{row},0),0)"));
-        worksheet.write_formula(row - 1, 13, f13).unwrap();
+        worksheet
+            .write_formula_with_format(row - 1, 13, f13, &format_bold)
+            .unwrap();
         worksheet.write_formula(row - 1, 14, "20%").unwrap();
     }
 
