@@ -205,10 +205,10 @@
   {#if !analyzing}
     <div class="mb-10 flex flex-col">
       <Button color="light" class="cursor-pointer mb-3" onclick={load_file_1}>
-        Insérez le fichier Analyse des Stocks
+        Insérez le fichier Analyse des Ventes
       </Button>
       <Button color="light" class="cursor-pointer mb-10" onclick={load_file_2}>
-        Insérez le fichier Analyse des Ventes
+        Insérez le fichier Analyse des Stocks
       </Button>
       <Button color="light" class="cursor-pointer bg-blue-50" onclick={analyze}>
         Cliquez pour connaître le nombre de bobines à commander par référence
