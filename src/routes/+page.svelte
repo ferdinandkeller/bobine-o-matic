@@ -94,6 +94,7 @@
       reference: group[0].product_code,
       designation: group[0].product_name,
       product_brand: group[0].product_brand,
+      subfamily_name: group[0].subfamily_name,
       // parameters
       delivery_duration: DELIVERY_DURATION,
       security_coeff: SECURITY_COEFF,
@@ -112,6 +113,7 @@
     product_code: string;
     product_name: string;
     product_brand: string;
+    subfamily_name: string;
   };
 
   type DataRow2 = {

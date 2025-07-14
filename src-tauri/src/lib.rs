@@ -22,6 +22,7 @@ struct DataRow {
     product_code: String,
     product_name: String,
     product_brand: String,
+    subfamily_name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,6 +36,7 @@ struct ProcessedDataRow {
     reference: String,
     designation: String,
     product_brand: String,
+    subfamily_name: String,
     delivery_duration: f64,
     security_coeff: f64,
     order_frequency: f64,
@@ -67,6 +69,10 @@ fn open_file_1(file_path: String) -> Vec<DataRow> {
     let product_code_index = columns.iter().position(|c| c == "product code").unwrap();
     let produce_name_index = columns.iter().position(|c| c == "product name").unwrap();
     let product_brand_index = columns.iter().position(|c| c == "brand group").unwrap();
+    let product_subfamily_index = columns
+        .iter()
+        .position(|c| c == "local subfamily name")
+        .unwrap();
 
     let date_regex = Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap();
 
@@ -88,6 +94,7 @@ fn open_file_1(file_path: String) -> Vec<DataRow> {
             product_code: row[product_code_index].clone(),
             product_name: row[produce_name_index].clone(),
             product_brand: row[product_brand_index].clone(),
+            subfamily_name: row[product_subfamily_index].clone(),
         })
         .filter(|row| row.quantity > 0.0)
         .collect();
@@ -202,6 +209,9 @@ fn excel(content: String, filename: String) {
     worksheet
         .write_string_with_format(0, 14, "Croissance", &format_bold)
         .unwrap();
+    worksheet
+        .write_string_with_format(0, 15, "Local SubFamily Name", &format_bold)
+        .unwrap();
 
     // add data rows
     for (i, row) in data.iter().enumerate() {
@@ -230,6 +240,9 @@ fn excel(content: String, filename: String) {
         worksheet.write_number(row_index, 7, row.std_dev).unwrap();
         worksheet
             .write_number(row_index, 11, row.stock_quantity)
+            .unwrap();
+        worksheet
+            .write_string(row_index, 15, &row.subfamily_name)
             .unwrap();
     }
 
