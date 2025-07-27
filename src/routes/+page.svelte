@@ -209,7 +209,10 @@
 </script>
 
 <main class="h-screen w-full flex flex-col items-center justify-center p-8">
-  <h1 class="b-4 text-3xl font-extrabold text-gray-900 mb-10">BobinOMatic</h1>
+  <h1 class="b-4 text-3xl font-extrabold text-gray-900">BobinOMatic</h1>
+  <h2 class="b-4 text-sm font-semibold text-gray-600 mb-10">
+    par Ferdinand Keller
+  </h2>
 
   {#if !analyzing}
     <div class="mb-10 flex flex-col">
