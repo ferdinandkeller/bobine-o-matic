@@ -7,7 +7,7 @@
 
   let analyzing: boolean = $state(false);
 
-  const SECURITY_COEFF = 3.08;
+  const SECURITY_COEFF = 3.09;
   const WINDOW_SIZE = 7;
   const DELIVERY_DURATION = 30;
   const ORDER_FREQUENCY = 7;
@@ -175,14 +175,21 @@
     const out = analyze_results(data_1, data_2);
     if (out === null) return;
 
-    let new_path = file_path_1.replace(/\.xlsx$/, "_output.xlsx");
+    let path = file_path_1.split("/").slice(0, -1);
+    const today = new Date();
+    const day = today.getDate();
+    const month = today.toLocaleString("fr-FR", { month: "long" });
+    const year = today.getFullYear();
+    const formattedDate = `${day} ${month} ${year}`;
+    path.push(`Bobines à Commander ${formattedDate}.xlsx`);
+    let filename = path.join("/");
 
     invoke("excel", {
       content: out,
-      filename: new_path,
+      filename: filename,
     }).then(async () => {
       analyzing = false;
-      await openPath(new_path);
+      await openPath(filename);
     });
   }
 

@@ -164,6 +164,7 @@ fn excel(content: String, filename: String) {
 
     // add headers
     let format_bold = Format::new().set_bold();
+    let format_bold_blue = format_bold.clone().set_background_color("#DAEEF3");
     worksheet
         .write_string_with_format(0, 0, "Référence", &format_bold)
         .unwrap();
@@ -174,13 +175,13 @@ fn excel(content: String, filename: String) {
         .write_string_with_format(0, 2, "Marque", &format_bold)
         .unwrap();
     worksheet
-        .write_string_with_format(0, 3, "Durée de Livraison (jours)", &format_bold)
+        .write_string_with_format(0, 3, "Délai de Livraison (jours)", &format_bold)
         .unwrap();
     worksheet
-        .write_string_with_format(0, 4, "Coefficient de Sécurité", &format_bold)
+        .write_string_with_format(0, 4, "Coeff de Sécurité", &format_bold)
         .unwrap();
     worksheet
-        .write_string_with_format(0, 5, "Fréquence de Commande (jours)", &format_bold)
+        .write_string_with_format(0, 5, "Fréq. de Commande (jours)", &format_bold)
         .unwrap();
     worksheet
         .write_string_with_format(0, 6, "Consommation Moyenne / jour", &format_bold)
@@ -204,13 +205,16 @@ fn excel(content: String, filename: String) {
         .write_string_with_format(0, 12, "Delta de Stock", &format_bold)
         .unwrap();
     worksheet
-        .write_string_with_format(0, 13, "Quantité à Commander", &format_bold)
+        .write_string_with_format(0, 13, "Qté à Commander", &format_bold_blue)
         .unwrap();
     worksheet
         .write_string_with_format(0, 14, "Croissance", &format_bold)
         .unwrap();
     worksheet
         .write_string_with_format(0, 15, "Local SubFamily Name", &format_bold)
+        .unwrap();
+    worksheet
+        .write_string_with_format(0, 16, "Coeff de Variation", &format_bold)
         .unwrap();
 
     // add data rows
@@ -247,7 +251,12 @@ fn excel(content: String, filename: String) {
     }
 
     // write formulas
-    let row_count = data.len();
+    let row_count: usize = data.len();
+    let format_two_decimals = Format::new().set_num_format("0.00");
+    let format_conditional = ConditionalFormat3ColorScale::new()
+        .set_minimum_color("#63BE7B")
+        .set_midpoint_color("#FFEB84")
+        .set_maximum_color("#F8696B");
     for i in 0..row_count {
         let row = i as u32 + 2;
         let f8 = Formula::new(format!("=G{row}*(D{row} + F{row})*(1+O{row})"));
@@ -260,10 +269,39 @@ fn excel(content: String, filename: String) {
         worksheet.write_formula(row - 1, 12, f12).unwrap();
         let f13 = Formula::new(format!("=IF(M{row}>=0,ROUNDUP(I{row}+M{row},0),0)"));
         worksheet
-            .write_formula_with_format(row - 1, 13, f13, &format_bold)
+            .write_formula_with_format(row - 1, 13, f13, &format_bold_blue)
             .unwrap();
         worksheet.write_formula(row - 1, 14, "20%").unwrap();
+        let f16 = Formula::new(format!("=H{row}/G{row}"));
+        worksheet
+            .write_formula_with_format(row - 1, 16, f16, &format_two_decimals)
+            .unwrap();
     }
+    worksheet
+        .add_conditional_format(
+            1 as u32,
+            16 as u16,
+            row_count as u32,
+            16 as u16,
+            &format_conditional,
+        )
+        .unwrap();
+
+    // Enable autofilter on all columns
+    worksheet
+        .autofilter(0 as u32, 0 as u16, row_count as u32, 16 as u16)
+        .unwrap();
+
+    // Set column widths using autofit
+    worksheet.autofit();
+
+    // Hide specific columns after autofit
+    worksheet.set_column_hidden(5).unwrap();
+    worksheet.set_column_hidden(6).unwrap();
+    worksheet.set_column_hidden(7).unwrap();
+    worksheet.set_column_hidden(8).unwrap();
+    worksheet.set_column_hidden(9).unwrap();
+    worksheet.set_column_hidden(10).unwrap();
 
     workbook.save(filename).unwrap();
 }
