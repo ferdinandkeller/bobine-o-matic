@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    stock_sync_lib::run()
+    bobin_o_matic_lib::run()
 }
