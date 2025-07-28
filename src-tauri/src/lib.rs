@@ -310,7 +310,7 @@ fn excel(content: String, filename: String) {
     worksheet.set_column_width(3, 10).unwrap();
     worksheet.set_column_width(11, 10).unwrap();
     worksheet.set_column_width(12, 10).unwrap();
-    worksheet.set_column_width(13, 10).unwrap();
+    worksheet.set_column_width(13, 12).unwrap();
     worksheet.set_column_width(14, 10).unwrap();
 
     // hide specific columns after autofit
