@@ -209,10 +209,12 @@
 </script>
 
 <main class="h-screen w-full flex flex-col items-center justify-center p-8">
-  <h1 class="b-4 text-3xl font-extrabold text-gray-900">BobinOMatic</h1>
-  <h2 class="b-4 text-sm font-semibold text-gray-600 mb-10">
-    par Ferdinand Keller
+  <h1 class="b-4 text-5xl font-extrabold text-gray-900 mb-15">BobinOMatic</h1>
+
+  <h2 class="b-4 text-sm text-stone-800 mb-0">
+    Développeur : Ferdinand KELLER
   </h2>
+  <h2 class="version b-4 text-sm text-stone-800 mb-0">Version : 1.0.0</h2>
 
   {#if !analyzing}
     <div class="mb-10 flex flex-col">
@@ -231,3 +233,15 @@
     <Spinner />
   {/if}
 </main>
+
+<style>
+  h2 {
+    position: absolute;
+    right: 30px;
+    bottom: 20px;
+  }
+
+  h2.version {
+    left: 30px;
+  }
+</style>
